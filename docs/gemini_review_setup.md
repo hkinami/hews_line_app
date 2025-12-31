@@ -91,6 +91,7 @@ GEMINI_API_KEY = ENV['GEMINI_API_KEY']
 GITHUB_TOKEN = ENV['GITHUB_TOKEN']
 REPO = ENV['GITHUB_REPOSITORY'] # "owner/repo"
 EVENT_PATH = ENV['GITHUB_EVENT_PATH']
+MAX_DIFF_LENGTH = 50000
 
 if GEMINI_API_KEY.nil? || GITHUB_TOKEN.nil?
   puts "Error: GEMINI_API_KEY or GITHUB_TOKEN is not set."
@@ -119,9 +120,11 @@ end
 
 # --- Gemini API呼び出し (Net::HTTP) ---
 def call_gemini_api(diff)
-  uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=#{GEMINI_API_KEY}")
+  # URLからkeyパラメータを削除
+  uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent")
   
-  truncated_diff = diff.slice(0, 50000)
+  # トークン数制限対策
+  truncated_diff = diff.slice(0, MAX_DIFF_LENGTH)
 
   prompt = <<~TEXT
     あなたはシニアソフトウェアエンジニアです。
@@ -161,8 +164,10 @@ def call_gemini_api(diff)
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true
   
+  # ヘッダーにAPIキーとContent-Typeを設定
   request = Net::HTTP::Post.new(uri)
   request['Content-Type'] = 'application/json'
+  request['x-goog-api-key'] = GEMINI_API_KEY
   request.body = body.to_json
 
   response = http.request(request)
@@ -173,16 +178,33 @@ def call_gemini_api(diff)
     exit 1
   end
 
-  result = JSON.parse(response.body)
+  begin
+    result = JSON.parse(response.body)
+  rescue JSON::ParserError => e
+    puts "Failed to parse Gemini response JSON: #{e.message}"
+    puts "Response body: #{response.body}"
+    exit 1
+  end
   
-  result.dig('candidates', 0, 'content', 'parts', 0, 'text')
-rescue => e
-  puts "Failed to parse Gemini response: #{e.message}"
-  exit 1
+  # レスポンスの解析
+  review_text = result.dig('candidates', 0, 'content', 'parts', 0, 'text')
+
+  if review_text.nil?
+    puts "Could not find review text in the Gemini response."
+    puts JSON.pretty_generate(result)
+    return nil
+  end
+
+  review_text
 end
 
 puts "Sending request to Gemini..."
 review_body = call_gemini_api(diff)
+
+if review_body.nil? || review_body.empty?
+  puts "No feedback generated."
+  exit 0
+end
 
 # --- コメントの投稿 ---
 puts "Posting comment to GitHub..."
