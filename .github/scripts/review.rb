@@ -36,7 +36,7 @@ end
 
 # --- Gemini API呼び出し (Net::HTTP) ---
 def call_gemini_api(diff)
-  uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=#{GEMINI_API_KEY}")
+  uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=#{GEMINI_API_KEY}")
   
   # トークン数制限対策 (簡易的)
   truncated_diff = diff.slice(0, 50000)
