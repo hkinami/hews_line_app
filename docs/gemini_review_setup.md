@@ -53,7 +53,14 @@ jobs:
 サードパーティのアクションにトークンを渡すのが不安な場合は、簡単なスクリプトをリポジトリに含めるのが最も安全です。
 
 #### A. 必要なスクリプト (`.github/scripts/review.rb` 等) の用意
-Googleの公式Gem `gemini-ai` を使って、diffの内容をAPIに投げるスクリプトを作成します。
+`.github/scripts/Gemfile` を作成し、必要なGemを定義します。
+
+```ruby
+source 'https://rubygems.org'
+gem 'octokit'
+```
+
+そして、レビュースクリプトを作成します。
 
 #### B. ワークフローでの実行
 ```yaml
@@ -63,13 +70,14 @@ Googleの公式Gem `gemini-ai` を使って、diffの内容をAPIに投げるス
         with:
           ruby-version: 3.3
           bundler-cache: true
+          working-directory: .github/scripts
       - name: Run Review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gem install octokit
-          ruby .github/scripts/review.rb
+          cd .github/scripts
+          bundle exec ruby review.rb
 ```
 
 詳細なスクリプトの実装が必要であれば、作成いたします。

@@ -15,10 +15,12 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 3.3
+          bundler-cache: true
+          working-directory: .github/scripts
       - name: Run Review
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gem install octokit
-          ruby .github/scripts/review.rb
+          cd .github/scripts
+          bundle exec ruby review.rb
