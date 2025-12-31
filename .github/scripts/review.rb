@@ -35,6 +35,26 @@ if diff.empty?
 end
 
 # --- Gemini API呼び出し (Net::HTTP) ---
+def list_available_models
+  uri = URI("https://generativelanguage.googleapis.com/v1beta/models?key=#{GEMINI_API_KEY}")
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true
+  request = Net::HTTP::Get.new(uri)
+  response = http.request(request)
+
+  if response.is_a?(Net::HTTPSuccess)
+    models = JSON.parse(response.body)['models']
+    puts "--- Available Models ---"
+    models.each do |model|
+      puts "- #{model['name']} (Supported generation methods: #{model['supportedGenerationMethods']})"
+    end
+    puts "------------------------"
+  else
+    puts "Failed to list models: #{response.code} #{response.message}"
+    puts response.body
+  end
+end
+
 def call_gemini_api(diff)
   uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=#{GEMINI_API_KEY}")
   
@@ -88,6 +108,12 @@ def call_gemini_api(diff)
   unless response.is_a?(Net::HTTPSuccess)
     puts "Gemini API Error: #{response.code} #{response.message}"
     puts response.body
+    
+    if response.code == '404'
+      puts "404 Error detected. Listing available models..."
+      list_available_models
+    end
+    
     exit 1
   end
 
