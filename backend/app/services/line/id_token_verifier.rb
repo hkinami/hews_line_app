@@ -1,22 +1,21 @@
 module Line
   class IdTokenVerifier
-    require 'net/http'
-    require 'json'
-
-    VERIFY_URL = 'https://api.line.me/oauth2/v2.1/verify'
+    VERIFY_URL = 'https://api.line.me/oauth2/v2.1/verify'.freeze
 
     def initialize(id_token)
       @id_token = id_token
     end
 
     def call
-      uri = URI(VERIFY_URL)
-      res = Net::HTTP.post_form(uri, { id_token: @id_token, client_id: ENV['LINE_CHANNEL_ID'] })
+      response = connection.post do |req|
+        req.body = URI.encode_www_form({
+          id_token: @id_token,
+          client_id: ENV.fetch('LINE_CHANNEL_ID', nil)
+        })
+      end
 
-      if res.is_a?(Net::HTTPSuccess)
-        body = JSON.parse(res.body)
-        # body contains: sub, name, picture, email, etc.
-        # sub is the userId
+      if response.success?
+        body = JSON.parse(response.body)
         {
           success: true,
           line_user_id: body['sub'],
@@ -24,10 +23,24 @@ module Line
           avatar_url: body['picture']
         }
       else
-        { success: false, error: res.body }
+        { success: false, error: response.body }
       end
-    rescue => e
-      { success: false, error: e.message }
+    rescue Faraday::Error => e
+      Rails.logger.error("LINE API request failed: #{e.message}")
+      { success: false, error: "LINE API request failed" }
+    rescue JSON::ParserError => e
+      Rails.logger.error("LINE API JSON parse error: #{e.message}")
+      { success: false, error: "Failed to parse LINE API response" }
+    end
+
+    private
+
+    def connection
+      Faraday.new(url: VERIFY_URL) do |faraday|
+        faraday.request :url_encoded
+        faraday.adapter Faraday.default_adapter
+        faraday.options.timeout = 5
+      end
     end
   end
 end
