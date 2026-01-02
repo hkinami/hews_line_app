@@ -9,13 +9,10 @@ module Api
           result = verifier.call
 
           if result[:success]
-            user = User.find_or_create_by(line_user_id: result[:line_user_id]) do |u|
-              u.name = result[:name]
-              u.avatar_url = result[:avatar_url]
-            end
-            
-            # If user exists but info changed, update it (optional)
-            user.update(name: result[:name], avatar_url: result[:avatar_url])
+            user = User.find_or_initialize_by(line_user_id: result[:line_user_id])
+            user.name = result[:name]
+            user.avatar_url = result[:avatar_url]
+            user.save!
 
             # Session management (Cookie)
             reset_session
