@@ -10,7 +10,7 @@ module Line
       response = connection.post do |req|
         req.body = URI.encode_www_form({
           id_token: @id_token,
-          client_id: ENV.fetch('LINE_CHANNEL_ID', nil)
+          client_id: ENV.fetch('LINE_CHANNEL_ID')
         })
       end
 
