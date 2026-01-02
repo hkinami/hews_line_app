@@ -17,9 +17,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_02_032424) do
   create_table "users", force: :cascade do |t|
     t.string "avatar_url"
     t.datetime "created_at", null: false
-    t.string "line_user_id"
+    t.string "line_user_id", null: false
     t.string "name"
     t.datetime "updated_at", null: false
-    t.index ["line_user_id"], name: "index_users_on_line_user_id"
+    t.index ["line_user_id"], name: "index_users_on_line_user_id", unique: true
   end
 end
