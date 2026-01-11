@@ -26,7 +26,7 @@
 
 3. データベースのセットアップ
    ```bash
-   docker compose exec backend bin/rails db:create db:migrate
+   docker compose exec backend bin/rails db:prepare
    ```
 
 ### フロントエンド (Next.js)
