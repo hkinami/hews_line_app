@@ -20,8 +20,20 @@ export default function LoginButton() {
             setStatus('Verify Session...');
             // 1. Get ID Token from LIFF
             const idToken = liff.getIDToken();
+            const decoded = liff.getDecodedIDToken();
 
-            if (idToken) {
+            if (idToken && decoded && decoded.exp) {
+                // Check if token is expired (giving 60s buffer)
+                const isExpired = decoded.exp * 1000 < Date.now() + 60000;
+
+                if (isExpired) {
+                    console.log('Token expired, refreshing...');
+                    setStatus('Token expired, refreshing...');
+                    liff.logout();
+                    liff.login();
+                    return;
+                }
+
                 // 2. Send to Backend
                 authWithLine(idToken)
                     .then(async (res) => {
@@ -33,6 +45,16 @@ export default function LoginButton() {
                     })
                     .catch((err) => {
                         console.error('Backend Auth Failed:', err);
+
+                        // Handle backend reporting expired token
+                        if (err.message && (err.message.includes('IdToken expired') || err.message.includes('IdToken is expired'))) {
+                            console.log('Backend reported expired token, refreshing...');
+                            setStatus('Token expired (backend), refreshing...');
+                            liff.logout();
+                            liff.login();
+                            return;
+                        }
+
                         setStatus(`Auth Failed: ${err.message}`);
                     });
             } else {
