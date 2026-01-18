@@ -2,6 +2,8 @@
 
 import { LiffProvider } from '../../context/LiffProvider';
 import LoginButton from '../../components/LoginButton';
+import SmartPassButtons from '../../components/SmartPassButtons';
+import SmartPassAutoRedirect from '../../components/SmartPassAutoRedirect';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -37,6 +39,12 @@ export default function Home() {
                     </div>
 
                     <LoginButton />
+
+                    <div className="mt-8">
+                        <SmartPassButtons />
+                    </div>
+
+                    <SmartPassAutoRedirect />
                 </main>
             </div>
         </LiffProvider>
